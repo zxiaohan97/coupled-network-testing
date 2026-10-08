@@ -193,7 +193,7 @@ def run_budget_gain_experiment(
     targets = (
         tuple(thresholds)
         if thresholds is not None
-        else ((threshold,) if threshold is not None else (0.1, 0.05))
+        else ((threshold,) if threshold is not None else (0.1,))
     )
     correlations = tuple(r_values)
     errors = tuple(social_errors)
@@ -272,7 +272,7 @@ def build_parser() -> argparse.ArgumentParser:
     target_group.add_argument(
         "--thresholds",
         type=parse_float_list,
-        help="Comma-separated targets (default: 0.1,0.05)",
+        help="Comma-separated targets (default: 0.1)",
     )
     parser.add_argument("--max-budget", type=int, default=8)
     parser.add_argument("--random-seed", type=int, default=7)
@@ -306,9 +306,7 @@ def main() -> None:
         print(
             f"r={row['r']:.1f}, target={row['threshold']:g}: "
             f"gain={100 * row['mean_budget_gain']:.1f}%, "
-            f"paired={row['num_reached']}/{row['n_trees']}, "
-            f"greedy reached={row['num_greedy_reached']}, "
-            f"contact reached={row['num_contact_reached']}",
+            f"approx. 95% CI=[{100 * row['ci95_low']:.1f}, {100 * row['ci95_high']:.1f}]%",
         )
     print(f"\nWrote {args.output}")
 

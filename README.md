@@ -69,20 +69,18 @@ not a measure of infections prevented.
 
 ## Reproducible Result
 
-![Small random-tree budget comparison](figures/selected_results/tree/tree_budget_gain.png)
+![Random-tree budget gain versus social correlation](figures/selected_results/tree/tree_budget_gain.png)
 
 This experiment uses 50 paired 8-node random trees at 11 social-correlation
 values (`r=0, 0.1, ..., 1`). The settings emphasize informative social testing:
-`p=0.9`, `q=0.1`, physical error `0.2`, social error `0.05`, uncertainty targets
-`0.1` and `0.05`, maximum budget `8`, and random seed `7`.
+`p=0.9`, `q=0.1`, physical error `0.2`, social error `0.05`, uncertainty threshold
+`0.1`, maximum budget `8`, and random seed `7`.
 
 Budget gain is `(contact_budget - greedy_budget) / contact_budget`, calculated
 only for trees where both policies reach the target and the contact-tracing
 budget is positive. Shading shows approximate 95% Student-t confidence intervals
-across those eligible trees; the sample size is printed under each gain panel.
-The lower panels show how often each policy reaches the target across all 50
-trees, including cases excluded from the gain estimate. Missing budgets are
-recorded as infinite, never replaced by the budget cap.
+across those eligible trees. Missing budgets are recorded as infinite, never
+replaced by the budget cap.
 
 For each tree, the target applies to the exact expected posterior uncertainty
 over all possible test outcomes. It is not a threshold applied separately to
@@ -90,15 +88,13 @@ each observed history. The tree contact-tracing baseline follows the original
 physical-only BFS order from the known infection seed and cycles through that
 order if needed. Noisy retests are allowed in this exact-tree experiment.
 
-At `r=1`, the target-`0.1` comparison gives mean budget savings of **53.3%**
-(approximate 95% interval: **51.3-55.4%**) across all 50 trees. For target `0.05`
-at the same correlation, greedy reaches the target on **50/50** trees within
-eight tests, while contact tracing reaches it on **8/50**.
+Mean budget gain increases from **31.2%** at `r=0` to **53.3%** at `r=1`
+(approximate 95% interval at `r=1`: **51.3-55.4%**).
 
 Reproduce the data and figure from the repository root:
 
 ```bash
-python experiments/tree/random_tree_budget_gain.py --workers 4 \
+python experiments/tree/random_tree_budget_gain.py --workers 4 --threshold 0.1 \
   --output figures/selected_results/tree/tree_budget_gain_summary.csv \
   --details-output figures/selected_results/tree/tree_budget_gain_trials.csv
 python experiments/tree/plot_tree_budget_gain.py \

@@ -17,7 +17,7 @@ python experiments/tree/plot_spanning_tree_approximation.py
 ```
 
 Most defaults are small public smoke runs. The random-tree budget-gain runner
-now evaluates 50 trees at 11 correlation values and two thresholds; it can take
+now evaluates 50 trees at 11 correlation values with threshold 0.1; it can take
 several minutes. Use `--workers 4` for parallel execution or
 `--n-trees 3 --r-values 0,0.5,1 --max-budget 3` for a smoke run. Other scripts
 retain their existing parameters.
@@ -38,10 +38,11 @@ Experiment roles:
 - `star_dp_sensitivity.py` runs a few small star-side DP configurations to show
   how the greedy-optimal gap changes with budget and parameters.
 - `random_tree_budget_gain.py` pairs policies on the same random trees, evaluates
-  targets 0.1 and 0.05 with p=0.9, q=0.1, physical error=0.2, and social error=0.05,
+  threshold 0.1 with p=0.9, q=0.1, physical error=0.2, and social error=0.05,
   and records per-tree budgets, conditional gain intervals, and unreached targets.
-  `--threshold` remains available for a single target; `--thresholds` accepts a
-  comma-separated target list. The plot separates targets and shows reach rates
-  so excluding infinite or zero-denominator budgets remains visible.
+  `--threshold` selects a single target; `--thresholds` accepts a custom
+  comma-separated target list. The plot shows budget gain versus social
+  correlation for threshold 0.1 by default, with approximate 95% confidence
+  intervals. Its `--threshold` option selects a different target if needed.
 - `spanning_tree_approximation.py` studies when a BFS spanning tree is a
   reasonable approximation to a sparse cyclic ER graph.

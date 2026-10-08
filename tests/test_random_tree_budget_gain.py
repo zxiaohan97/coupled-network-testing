@@ -84,3 +84,20 @@ def test_sweep_matches_between_serial_and_parallel_execution(tmp_path):
         assert first.keys() == second.keys()
         np.testing.assert_equal(list(first.values()), list(second.values()))
     assert (tmp_path / "serial.csv").read_bytes() == (tmp_path / "parallel.csv").read_bytes()
+
+
+def test_default_sweep_uses_only_threshold_point_one():
+    rows = run_budget_gain_experiment(
+        n_nodes=4,
+        n_trees=2,
+        p=0.9,
+        q=0.1,
+        r_values=[0, 1],
+        physical_error=0.2,
+        social_errors=[0.05],
+        max_budget=2,
+        random_seed=7,
+    )
+
+    assert len(rows) == 2
+    assert {row["threshold"] for row in rows} == {0.1}

@@ -126,19 +126,11 @@ obvious social testing. The manuscript reports a star-graph DP comparison at
 larger scale; that should be treated as manuscript-scale evidence rather than a
 quick demo.
 
-The earlier random-tree smoke demo used five 8-node random trees, threshold
-`0.15`, and max budget `5`. Greedy and contact tracing tied on average at
-`r=0` and `r=0.5`; at `r=1`, the mean budget gain was `20%`. This matches the
-expected qualitative story that social information helps most when social
-states are strongly correlated, but the run is too small to support a formal
-claim by itself. Those are historical outputs from the earlier one-based
-threshold counter, not the current README figure.
-
 ## Expanded Random-Tree Sweep
 
 The current runner uses 50 random labeled trees with 8 nodes each, infection seed
 node 0, and random seed 7. It reuses the same tree seeds for every social
-correlation value `0, 0.1, ..., 1` and both uncertainty targets `0.1` and `0.05`.
+correlation value `0, 0.1, ..., 1`, with uncertainty threshold `0.1`.
 The selected social-informative regime is `p=0.9`, `q=0.1`, physical test error
 `0.2`, and social test error `0.05`, with a maximum budget of 8 tests.
 
@@ -160,8 +152,8 @@ The summary reports the mean per-tree ratio
 `(contact_budget - greedy_budget) / contact_budget` only when both budgets are
 finite and the contact budget is positive. Negative gains remain in the sample.
 Unreached targets are recorded as infinite and zero-denominator gains as NaN.
-Counts and reachability fractions include all sampled trees, including excluded
-cases, so the conditional mean is not mistaken for a population-wide effect.
+Per-tree budgets are retained in the accompanying CSV for reproducibility.
+The conditional mean should not be interpreted as a population-wide effect.
 
 Confidence intervals are approximate pointwise 95% Student-t intervals using
 the sample standard deviation across eligible paired trees. They describe
@@ -172,29 +164,16 @@ makes the curve paired; its individual points are not independent replicates.
 
 The completed target-0.1 sweep gives the following selected points:
 
-| Social correlation | Mean budget gain | Approx. 95% CI | Eligible paired trees | Greedy reaches target | Contact reaches target |
-| --- | --- | --- | --- | --- | --- |
-| 0.0 | 31.2% | 25.3-37.2% | 38/50 | 50/50 | 44/50 |
-| 0.5 | 37.6% | 33.8-41.5% | 43/50 | 50/50 | 43/50 |
-| 1.0 | 53.3% | 51.3-55.4% | 50/50 | 50/50 | 50/50 |
-
-At r=0, six trees already meet target 0.1 without any tests; they count as
-reaching the target but have no defined relative budget gain. For target 0.05,
-only 0-8 trees per correlation have two finite budgets by the cap. At r=0.5,
-greedy reaches that target on 22/50 trees while contact tracing reaches it on
-0/50; at r=1, the counts are 50/50 and 8/50. Thus the stricter target is mainly
-informative about reachability under the cap. Its conditional gain curve uses
-small, changing subsets and should not be read as a population-wide trend.
-
-The plot leaves gain values missing when no trees qualify. At r=1 and target
-0.05, all eight eligible pairs have budgets 5 and 8, so the empirical variance
-and t-interval width are zero. That reflects identical observed ratios in a
-small conditional sample, not certainty about the population effect.
+| Social correlation | Mean budget gain | Approx. 95% CI |
+| --- | --- | --- |
+| 0.0 | 31.2% | 25.3-37.2% |
+| 0.5 | 37.6% | 33.8-41.5% |
+| 1.0 | 53.3% | 51.3-55.4% |
 
 Reproduce the complete figure and small synthetic data files:
 
 ```bash
-python experiments/tree/random_tree_budget_gain.py --workers 4 \
+python experiments/tree/random_tree_budget_gain.py --workers 4 --threshold 0.1 \
   --output figures/selected_results/tree/tree_budget_gain_summary.csv \
   --details-output figures/selected_results/tree/tree_budget_gain_trials.csv
 python experiments/tree/plot_tree_budget_gain.py \
