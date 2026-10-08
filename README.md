@@ -71,24 +71,50 @@ not a measure of infections prevented.
 
 ![Small random-tree budget comparison](figures/selected_results/tree/tree_budget_gain.png)
 
-This illustrative experiment compares the number of tests required to reach the
-same uncertainty threshold on five 8-node random trees. The default settings are
-`p=0.8`, `q=0.2`, physical error `0.15`, social error `0.1`, threshold `0.15`,
-maximum budget `5`, and random seed `7`. Budget gain is
-`(contact_budget - greedy_budget) / contact_budget`, calculated only for trees
-where both policies reach the threshold with a positive contact-tracing budget.
-The output includes the number of qualifying trees (`num_reached`).
+This experiment uses 50 paired 8-node random trees at 11 social-correlation
+values (`r=0, 0.1, ..., 1`). The settings emphasize informative social testing:
+`p=0.9`, `q=0.1`, physical error `0.2`, social error `0.05`, uncertainty targets
+`0.1` and `0.05`, maximum budget `8`, and random seed `7`.
+
+Budget gain is `(contact_budget - greedy_budget) / contact_budget`, calculated
+only for trees where both policies reach the target and the contact-tracing
+budget is positive. Shading shows approximate 95% Student-t confidence intervals
+across those eligible trees; the sample size is printed under each gain panel.
+The lower panels show how often each policy reaches the target across all 50
+trees, including cases excluded from the gain estimate. Missing budgets are
+recorded as infinite, never replaced by the budget cap.
+
+For each tree, the target applies to the exact expected posterior uncertainty
+over all possible test outcomes. It is not a threshold applied separately to
+each observed history. The tree contact-tracing baseline follows the original
+physical-only BFS order from the known infection seed and cycles through that
+order if needed. Noisy retests are allowed in this exact-tree experiment.
+
+At `r=1`, the target-`0.1` comparison gives mean budget savings of **53.3%**
+(approximate 95% interval: **51.3-55.4%**) across all 50 trees. For target `0.05`
+at the same correlation, greedy reaches the target on **50/50** trees within
+eight tests, while contact tracing reaches it on **8/50**.
 
 Reproduce the data and figure from the repository root:
 
 ```bash
-python experiments/tree/random_tree_budget_gain.py
-python experiments/tree/plot_tree_budget_gain.py
+python experiments/tree/random_tree_budget_gain.py --workers 4 \
+  --output figures/selected_results/tree/tree_budget_gain_summary.csv \
+  --details-output figures/selected_results/tree/tree_budget_gain_trials.csv
+python experiments/tree/plot_tree_budget_gain.py \
+  --input figures/selected_results/tree/tree_budget_gain_summary.csv
 ```
 
-These are small demonstration runs, not manuscript-scale estimates or evidence
-that greedy wins on every graph. Further experiment descriptions and previously
-generated demo results are in [Tree Experiments](docs/tree_experiments.md).
+This sweep takes longer than the quick-start demos. Use `--workers 1` for serial
+execution or `--n-trees 3 --r-values 0,0.5,1 --max-budget 3` for a smoke run.
+The [summary](figures/selected_results/tree/tree_budget_gain_summary.csv) and
+[per-tree results](figures/selected_results/tree/tree_budget_gain_trials.csv)
+are included so the figure can be checked without rerunning the sweep.
+
+This is a targeted synthetic experiment, not a manuscript-scale estimate or
+evidence that greedy wins on every graph. Confidence intervals are conditional
+on reaching the target and do not correct for the excluded trees. Further
+details are in [Tree Experiments](docs/tree_experiments.md).
 
 ## Validation and Limitations
 

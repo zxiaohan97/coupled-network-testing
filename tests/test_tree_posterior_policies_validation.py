@@ -2,6 +2,7 @@ import math
 
 from coupled_network_testing.tree.exact_model import ModelParameters
 from coupled_network_testing.tree.policies import (
+    analyze_threshold_times,
     compare_strategies,
     run_contact_tracing,
     run_greedy_testing,
@@ -75,3 +76,32 @@ def test_validation_simulation_returns_empirical_probabilities():
 
     assert probabilities[0] is not None
     assert set(probabilities[0]) == {0, 1, 2, 3}
+
+
+def test_threshold_times_match_full_expected_uncertainty_curves():
+    model = make_small_model()
+    curves = compare_strategies(model, num_tests=3)
+    targets = [0.25, 0.1, 0.05, 0.00001]
+    times = analyze_threshold_times(model, targets, max_budget=3)
+
+    for strategy, result in curves.items():
+        for target in targets:
+            expected = next(
+                (index for index, value in enumerate(result["uncertainties"]) if value <= target),
+                float("inf"),
+            )
+            assert times[strategy][target] == expected
+
+
+def test_threshold_times_include_zero_budget_and_restore_current_posterior():
+    model = make_small_model()
+    prior = model.get_physical_uncertainty()
+    model.update_with_test((2, 1, 0))
+    before = model.snapshot()
+
+    times = analyze_threshold_times(model, [prior, prior / 2], max_budget=0)
+
+    for strategy in ("greedy", "contact_tracing"):
+        assert times[strategy][prior] == 0
+        assert math.isinf(times[strategy][prior / 2])
+    assert model.snapshot() == before

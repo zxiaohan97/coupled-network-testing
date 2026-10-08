@@ -6,6 +6,8 @@ These functions are adapted from the policy methods in the original
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+
 from coupled_network_testing.tree.posterior_updates import ExactTreePosteriorModel
 
 TestSequence = tuple[tuple[int, int, int], ...]
@@ -47,9 +49,21 @@ def run_greedy_testing(
 ) -> tuple[list[tuple[TestSequence, float]], list[float]]:
     """Run the original exhaustive greedy testing tree for ``num_tests`` rounds."""
 
+    uncertainty_by_time = []
+    for _sequences, uncertainty in _greedy_testing_rounds(model, num_tests):
+        uncertainty_by_time.append(uncertainty)
+    return _sequences, uncertainty_by_time
+
+
+def _greedy_testing_rounds(
+    model: ExactTreePosteriorModel,
+    num_tests: int,
+) -> Iterator[tuple[list[tuple[TestSequence, float]], float]]:
+    """Yield exact expected uncertainty after each round, starting at budget zero."""
+
     model.reset_to_initial_state()
     sequences_to_explore: list[tuple[TestSequence, float]] = [((), 1.0)]
-    uncertainty_by_time = [model.get_physical_uncertainty()]
+    yield sequences_to_explore, model.get_physical_uncertainty()
 
     for _ in range(num_tests):
         new_sequences: list[tuple[TestSequence, float]] = []
@@ -75,9 +89,7 @@ def run_greedy_testing(
                     time_uncertainty += new_prob * model.get_physical_uncertainty()
 
         sequences_to_explore = new_sequences
-        uncertainty_by_time.append(time_uncertainty)
-
-    return sequences_to_explore, uncertainty_by_time
+        yield sequences_to_explore, time_uncertainty
 
 
 def contact_tracing_order(model: ExactTreePosteriorModel) -> list[int]:
@@ -106,13 +118,25 @@ def run_contact_tracing(
 ) -> tuple[list[tuple[TestSequence, float]], list[float]]:
     """Run physical-test-only contact tracing in the original BFS order."""
 
+    uncertainty_by_time = []
+    for _sequences, uncertainty in _contact_tracing_rounds(model, num_tests):
+        uncertainty_by_time.append(uncertainty)
+    return _sequences, uncertainty_by_time
+
+
+def _contact_tracing_rounds(
+    model: ExactTreePosteriorModel,
+    num_tests: int,
+) -> Iterator[tuple[list[tuple[TestSequence, float]], float]]:
+    """Yield the physical-only BFS baseline without recomputing earlier rounds."""
+
     model.reset_to_initial_state()
     bfs_order = contact_tracing_order(model)
     sequences_to_explore: list[tuple[TestSequence, float]] = [((), 1.0)]
-    uncertainty_by_time = [model.get_physical_uncertainty()]
+    yield sequences_to_explore, model.get_physical_uncertainty()
 
     if not bfs_order:
-        return sequences_to_explore, uncertainty_by_time
+        return
 
     for _ in range(num_tests):
         new_sequences: list[tuple[TestSequence, float]] = []
@@ -139,9 +163,7 @@ def run_contact_tracing(
                     new_sequences.append((new_sequence, new_prob))
 
         sequences_to_explore = new_sequences
-        uncertainty_by_time.append(time_uncertainty)
-
-    return sequences_to_explore, uncertainty_by_time
+        yield sequences_to_explore, time_uncertainty
 
 
 def compare_strategies(model: ExactTreePosteriorModel, num_tests: int) -> dict:
@@ -171,7 +193,15 @@ def analyze_threshold_times(
     thresholds: list[float] | tuple[float, ...],
     max_budget: int,
 ) -> dict:
-    """Track when each policy first reaches each uncertainty threshold."""
+    """Find the first budget whose outcome-averaged uncertainty meets each target.
+
+    A target already met by the prior has budget zero. Unreached targets remain
+    infinite. This is a threshold on the expected uncertainty curve, not the
+    expected stopping time of a policy that stops separately on each history.
+    """
+
+    if max_budget < 0:
+        raise ValueError("max_budget cannot be negative")
 
     threshold_times = {
         "greedy": {d: float("inf") for d in thresholds},
@@ -179,37 +209,23 @@ def analyze_threshold_times(
     }
 
     initial_snapshot = model.snapshot()
-    remaining_thresholds = set(thresholds)
-    t = 0
-    while t < max_budget and remaining_thresholds:
-        _, uncertainties = run_greedy_testing(model, t + 1)
-        current_uncertainty = uncertainties[-1]
-        reached_thresholds = {
-            threshold
-            for threshold in remaining_thresholds
-            if current_uncertainty <= threshold
-        }
-        for threshold in reached_thresholds:
-            threshold_times["greedy"][threshold] = t + 1
-        remaining_thresholds -= reached_thresholds
-        t += 1
+    for strategy, runner in (
+        ("greedy", _greedy_testing_rounds),
+        ("contact_tracing", _contact_tracing_rounds),
+    ):
+        remaining_thresholds = set(thresholds)
+        if not remaining_thresholds:
+            continue
+        # Traverse each policy's outcome tree only once. Testing several
+        # thresholds shares the same exact uncertainty curve and decisions.
+        for budget, (_, uncertainty) in enumerate(runner(model, max_budget)):
+            reached = {target for target in remaining_thresholds if uncertainty <= target}
+            for target in reached:
+                threshold_times[strategy][target] = budget
+            remaining_thresholds -= reached
+            if not remaining_thresholds:
+                break
 
     model.restore_snapshot(initial_snapshot)
-    model.store_current_state(())
-
-    remaining_thresholds = set(thresholds)
-    t = 0
-    while t < max_budget and remaining_thresholds:
-        _, uncertainties = run_contact_tracing(model, t + 1)
-        current_uncertainty = uncertainties[-1]
-        reached_thresholds = {
-            threshold
-            for threshold in remaining_thresholds
-            if current_uncertainty <= threshold
-        }
-        for threshold in reached_thresholds:
-            threshold_times["contact_tracing"][threshold] = t + 1
-        remaining_thresholds -= reached_thresholds
-        t += 1
 
     return threshold_times
