@@ -1,0 +1,66 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Build and packaging
+build/
+dist/
+*.egg-info/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs and temporary outputs
+*.log
+tmp/
+temp/
+scratch/
+outputs/
+results/
+runs/
+
+# Secrets and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.token
+credentials.json
+
+# Local machine paths/config
+local_config.py
+config.local.*
+*.local
+
+# Raw/private data should stay outside the public release
+data/raw/
+data/private/
+Real/
+RealCoop/
+
+# Keep selected public figures, but ignore scratch figure outputs
+figures/**/scratch/
+figures/**/tmp/
+figures/**/generated/
+figures/**/drafts/
